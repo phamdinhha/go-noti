@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go-noti/models"
+	"log"
 	"net/http"
 	"sync"
 
@@ -109,7 +110,9 @@ func (e *rnEngine) Run(ctx context.Context, router *gin.Engine) error {
 		fmt.Println("On user authentication")
 		user := models.NewFakeUser()
 		appSock := NewAppSocket(s, user)
+		fmt.Println(appSock)
 		e.saveAppSocket(user.ID, appSock)
+		fmt.Println("storage: ", e.storage)
 		s.Emit("authenticated", user)
 		// server.OnEvent("/", "UserUpdateLocation", )
 	})
@@ -117,6 +120,12 @@ func (e *rnEngine) Run(ctx context.Context, router *gin.Engine) error {
 	defer server.Close()
 	router.GET("/socket.io/*any", gin.WrapH(server))
 	router.POST("/socket.io/*any", gin.WrapH(server))
+	router.POST("/send-to-user", func(ctx *gin.Context) {
+		e.EmitToUser(1, "notification", "test noti")
+	})
 	router.StaticFS("/public", http.Dir("../asset"))
+	if err := router.Run(":8000"); err != nil {
+		log.Fatal("failed run app: ", err)
+	}
 	return nil
 }
